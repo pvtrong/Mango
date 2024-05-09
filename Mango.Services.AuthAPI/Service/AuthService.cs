@@ -67,7 +67,8 @@ namespace Mango.Services.AuthAPI.Service
                     Token = string.Empty
                 };
             }
-            var token = _jwtTokenGenerator.GenerateToken(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var token = _jwtTokenGenerator.GenerateToken(user, roles);
 
             UserDto userDto = new()
             {
@@ -84,6 +85,20 @@ namespace Mango.Services.AuthAPI.Service
             };
 
             return response;
+        }
+
+        public async Task<bool> AssignRole(string email, string roleName)
+        {
+            var user = _db.ApplicationUsers.First(x => x.UserName.ToLower() == email.ToLower());
+            if (user != null) {
+                var isExistedRole = await _roleManager.RoleExistsAsync(roleName);
+                if (!isExistedRole) {
+                    await _roleManager.CreateAsync(new IdentityRole(roleName));
+                }
+                await _userManager.AddToRoleAsync(user, roleName);
+                return true;
+            }
+            return false;
         }
     }
 }
